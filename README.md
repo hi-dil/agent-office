@@ -433,3 +433,30 @@ node bin/agent-office.js /path/to/project --password dev
 ## License
 
 [MIT](LICENSE)
+
+## Asana tasks
+
+Open **☰ → Asana tasks** on a project floor. An office admin can save the Asana
+project URL (or numeric project ID) and a personal access token created at
+[Asana's developer console](https://app.asana.com/0/my-apps). The token needs
+access to that project. You can save the project first and add its token later.
+
+The board shows incomplete tasks grouped by Asana section, including the assignee,
+due date and description. Open a task to **Hand to worker** or **Add to queue**;
+both let you review and edit the prompt and choose the agent. The task's Asana
+link and description travel with the prompt. The integration only reads Asana:
+queueing, starting or finishing work does not change tasks or post comments there.
+
+Each floor has its own connection, saved in its ignored `.agent-office/asana.json`
+with owner-only file permissions. Tokens are never returned to browsers, added to
+worker prompts, or set in the workers' environment. Leave the token field blank
+to retain a saved token, or **Disconnect** to remove the connection and token.
+Everyone signed into the office can read a connected floor's tasks.
+
+Refreshes are cached for 90 seconds and include up to 1,000 incomplete tasks;
+the board labels partial results and shows connection errors alongside cached
+cards. Polling runs while the board is open. A Codex Asana plugin connection is
+separate from this server-side connection.
+
+The optional browser smoke test uses fixture data and a local Chrome installation:
+`node tests/asana-browser.mjs` (`CHROME_PATH` overrides the executable).

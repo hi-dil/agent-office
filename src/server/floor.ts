@@ -9,6 +9,7 @@ import { excludeFromGit } from './config.js';
 import { configuredProvider } from './agents.js';
 import { WorkerManager, type HookEnv } from './workers.js';
 import { GitHub, MergeWatch } from './github.js';
+import { AsanaBoard } from './asana.js';
 import { TaskQueue } from './queue.js';
 import { Changes } from './changes.js';
 import { Decor } from './decor.js';
@@ -80,6 +81,7 @@ export class Floor {
   readonly project: ProjectInfo;
   readonly workers: WorkerManager;
   readonly github: GitHub;
+  readonly asana: AsanaBoard;
   readonly queue: TaskQueue;
   readonly changes: Changes;
   readonly decor: Decor;
@@ -143,6 +145,8 @@ export class Floor {
       ctx.ledger,
       ctx.capacity,
     );
+
+    this.asana = new AsanaBoard(dataDir);
 
     this.github = new GitHub(
       def.dir,

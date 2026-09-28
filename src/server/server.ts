@@ -1,3 +1,4 @@
+import { asanaRequest } from './asana-http.js';
 import http from 'node:http';
 import https from 'node:https';
 import { randomBytes } from 'node:crypto';
@@ -706,6 +707,20 @@ export async function startServer(cfg: Config) {
       }
       // Which floor a request is about: its boards and its workers.
       const floor = floors.get(url.searchParams.get('floor') ?? '');
+      if (p === '/api/asana' || p === '/api/asana/refresh') {
+        let body: unknown;
+        if (req.method === 'POST' && p === '/api/asana') {
+          if (!sameOrigin(req, cfg)) return send(res, 403, { error: 'Forbidden' });
+          if (!meOf(session.account?.id).admin) return send(res, 403, { error: 'Only office admins can change the Asana connection.' });
+          try { body = JSON.parse(await readBody(req, 8192)); }
+          catch { return send(res, 400, { error: 'Invalid Asana settings (maximum 8 KB).' }); }
+        }
+        const result = await asanaRequest(floor?.asana, {
+          method: req.method ?? '', admin: meOf(session.account?.id).admin,
+          sameOrigin: sameOrigin(req, cfg), refresh: p === '/api/asana/refresh', body,
+        });
+        return send(res, result.status, result.body, { 'cache-control': 'no-store' });
+      }
       if (p === '/api/whiteboard/file') {
         // Pictures on the whiteboard. Their ids are hashes of what's in them, so they never change.
         if (!floor) return send(res, 404, { error: 'No such floor' });
