@@ -5,7 +5,7 @@ import { h, openModal, timeAgo, toast, type Modal } from './dom';
 import { openAsk } from './ask';
 
 interface Actions {
-  assign(prompt: string, title: string): void;
+  assign(prompt: string, title: string, stillValid: () => boolean): void;
   queue(prompt: string, title: string, provider?: AgentProvider, model?: string, effort?: AgentEffort): void;
 }
 
@@ -15,6 +15,8 @@ export function openAsanaBoard(actions: Actions) {
   const controller = new AbortController();
   let closed = false;
   let busy = false;
+  let connectionVersion = 0;
+  let detailTask: AsanaTask | undefined;
   let editing = false;
   let state: AsanaState | undefined;
   let detail: Modal | undefined;
@@ -73,7 +75,7 @@ export function openAsanaBoard(actions: Actions) {
     }
     for (const [section, tasks] of columns) {
       body.append(h('section.column', {}, h('h4', {}, section, h('span', {}, tasks.length)),
-        h('ul', {}, ...tasks.map(task => h('li', {}, h('button.card.asana-card', { type: 'button', onclick: () => openTask(task) },
+        h('ul', {}, ...tasks.map(task => h('li', {}, h('button.card.asana-card', { type: 'button', disabled: busy, onclick: () => openTask(task) },
           h('span.ttl', {}, task.name), h('span.meta', {}, [task.assignee ? `👤 ${task.assignee}` : 'Unassigned', task.dueOn ? `Due ${task.dueOn}` : ''].filter(Boolean).join(' · '))))))));
     }
   }
@@ -81,6 +83,7 @@ export function openAsanaBoard(actions: Actions) {
   function showNotice(text: string) { notice.textContent = text; notice.hidden = !text; }
   async function request(method = 'GET', payload?: { project: string; token: string }, force = false) {
     if (busy || closed || store.floor !== floor) return;
+    if (method === 'DELETE' || (method === 'POST' && !force)) { connectionVersion++; detail?.close(); }
     busy = true; render();
     try {
       const response = await fetch(`/api/asana${force ? '/refresh' : ''}?floor=${encodeURIComponent(floor!)}`, {
@@ -90,7 +93,11 @@ export function openAsanaBoard(actions: Actions) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not load Asana.');
       if (closed || store.floor !== floor) return;
+      if (state && (state.project?.gid !== data.project?.gid || state.hasToken !== data.hasToken)) {
+        connectionVersion++; detail?.close();
+      }
       state = data;
+      if (detailTask && !state?.items.some(t => t.gid === detailTask?.gid && t.url === detailTask?.url)) detail?.close();
       if (method !== 'GET') { editing = false; token.value = ''; detail?.close(); }
       if (!editing) project.value = state?.project?.gid ?? '';
       showNotice([state?.error, state?.truncated ? 'Showing the first 1,000 incomplete tasks. Open Asana to see the rest.' : ''].filter(Boolean).join(' '));
@@ -107,16 +114,19 @@ export function openAsanaBoard(actions: Actions) {
   function openTask(task: AsanaTask) {
     if (closed || store.floor !== floor) return;
     const prompt = asanaTaskPrompt(task);
+    const version = connectionVersion;
+    const stillValid = () => !closed && store.floor === floor && version === connectionVersion && !!state?.hasToken && !!state.items.some(t => t.gid === task.gid && t.url === task.url);
+    detailTask = task;
     const taskClose = h('button.btn.close', { 'aria-label': 'Close task' }, '✕');
     const assign = h('button.btn.primary', { type: 'button', onclick: () => {
-      if (store.floor !== floor) return;
-      detail?.close(); actions.assign(prompt, task.name);
+      if (!stillValid()) return;
+      detail?.close(); actions.assign(prompt, task.name, stillValid);
     } }, 'Hand to worker');
     const queue = h('button.btn', { type: 'button', onclick: () => {
       detail?.close();
       openAsk({ title: 'Queue Asana task', initial: prompt, newDesk: 'Next free worker', workers: [], providerOption: true, worktreeOption: false,
         onSubmit: (text, _to, _worktree, provider, model, effort) => {
-          if (store.floor !== floor) { toast('Return to the task’s floor before queueing it.', 'warn'); return; }
+          if (!stillValid()) { toast('The Asana connection or task changed. Reopen the task before queueing it.', 'warn'); return; }
           actions.queue(text, `Asana: ${task.name}`.slice(0, 200), provider, model, effort);
         } });
     } }, 'Add to queue');

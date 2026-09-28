@@ -1428,7 +1428,7 @@ function showJukebox() {
 }
 
 /** A prompt from the boards goes to a new worker at a free desk, or to one already at a desk. */
-function sendToWorker(title: string, text: { context?: string; initial?: string }) {
+function sendToWorker(title: string, text: { context?: string; initial?: string }, stillValid?: () => boolean) {
   const desk = freeDesk();
   const awake = [...store.workers.values()].filter((w) => w.kind === 'agent' && !isAsleep(w.status));
   if (!desk && !awake.length) {
@@ -1443,6 +1443,7 @@ function sendToWorker(title: string, text: { context?: string; initial?: string 
     worktreeOption: !!store.project?.branch,
     providerOption: true,
     onSubmit: (prompt, to, worktree, provider, model, effort) => {
+      if (stillValid && !stillValid()) { toast('The Asana connection or task changed. Reopen the task before sending it.', 'warn'); return; }
       if (to) net.send({ t: 'worker.prompt', workerId: to, prompt });
       else if (desk) hire(desk, prompt, worktree, provider, model, effort);
     },
@@ -2602,7 +2603,7 @@ const hud = mountHud(
     { id: 'asana', icon: '🔴', label: 'Asana tasks', section: 'Open', shown: () => !!store.project, run: () => {
       const floor = store.floor;
       openAsanaBoard({
-        assign: (prompt, title) => { if (store.floor === floor) sendToWorker(`Asana: ${title}`, { initial: prompt }); },
+        assign: (prompt, title, stillValid) => { if (store.floor === floor) sendToWorker(`Asana: ${title}`, { initial: prompt }, stillValid); },
         queue: (prompt, title, provider, model, effort) => { if (store.floor === floor) net.send({ t: 'queue.add', prompt, title, provider, model, effort }); },
       });
     } },

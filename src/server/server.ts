@@ -712,6 +712,7 @@ export async function startServer(cfg: Config) {
         if (req.method === 'POST' && p === '/api/asana') {
           if (!sameOrigin(req, cfg)) return send(res, 403, { error: 'Forbidden' });
           if (!meOf(session.account?.id).admin) return send(res, 403, { error: 'Only office admins can change the Asana connection.' });
+          if (Number(req.headers['content-length']) > 8192) return send(res, 413, { error: 'Asana settings are too large (maximum 8 KB).' }, { connection: 'close' });
           try { body = JSON.parse(await readBody(req, 8192)); }
           catch { return send(res, 400, { error: 'Invalid Asana settings (maximum 8 KB).' }); }
         }

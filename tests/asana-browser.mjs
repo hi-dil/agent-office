@@ -17,7 +17,7 @@ try {
   let connected = false;
   let failRefresh = false;
   const task = { gid: '9001', name: 'Fix payroll', notes: '<script>window.hacked=true</script>\nKeep existing approvals.', url: 'https://app.asana.com/0/1217014847874353/9001', section: 'Ready', assignee: 'Aida', dueOn: '2026-10-01' };
-  await page.route('**/asana-harness', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/style.css"></head><body><div id="modal-root"></div><script type="module">import {openAsanaBoard} from '/ui/asana.ts'; import {store} from '/state.ts'; window.store=store;store.floor='shrm';store.me={admin:true};store.project={name:'SHRM',defaultProvider:'codex',agentProviders:['codex'],dir:'/test',agentCmd:'codex'};window.openBoard=()=>openAsanaBoard({assign:(prompt,title)=>window.handoff={prompt,title},queue:(prompt,title,provider)=>window.queued={prompt,title,provider}});openBoard();</script></body></html>` }));
+  await page.route('**/asana-harness', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/style.css"></head><body><div id="modal-root"></div><div id="toasts"></div><script type="module">import {openAsanaBoard} from '/ui/asana.ts'; import {store} from '/state.ts'; window.store=store;store.floor='shrm';store.me={admin:true};store.project={name:'SHRM',defaultProvider:'codex',agentProviders:['codex'],dir:'/test',agentCmd:'codex'};window.openBoard=()=>openAsanaBoard({assign:(prompt,title)=>window.handoff={prompt,title},queue:(prompt,title,provider)=>window.queued={prompt,title,provider}});openBoard();</script></body></html>` }));
   await page.route('**/api/asana**', async route => {
     const req = route.request();
     assert.equal(new URL(req.url()).searchParams.get('floor'), 'shrm');
@@ -27,6 +27,7 @@ try {
     if (req.method() === 'DELETE') connected = false;
     await route.fulfill({ json: { project: { gid: '1217014847874353', name: 'SHRM', url: 'https://app.asana.com/0/1217014847874353/list' }, hasToken: connected, items: connected ? [task] : [], fetchedAt: connected ? Date.now() : 0, loading: false, truncated: false, ...(failRefresh ? { error: 'Asana rate limit reached. Wait 90 seconds before refreshing.' } : {}) } });
   });
+  await page.clock.install();
   await page.goto(`http://127.0.0.1:${port}/asana-harness`);
   await page.getByLabel('Personal access token').fill('test-token');
   await page.getByRole('button', { name: 'Connect Asana', exact: true }).click();
@@ -42,6 +43,18 @@ try {
   await page.getByRole('button', { name: /Send|Hire|Queue/ }).last().click();
   await page.waitForFunction(() => !!window.queued);
   assert.equal((await page.evaluate(() => window.queued)).provider, 'codex');
+  // Another admin disconnects while an editable queue handoff is open.
+  await page.evaluate(() => { window.queued = undefined; });
+  await page.getByRole('button', { name: /Fix payroll/ }).click();
+  await page.getByRole('button', { name: 'Add to queue', exact: true }).click();
+  connected = false;
+  await page.clock.fastForward(90_001);
+  await page.getByRole('button', { name: 'Connect Asana', exact: true }).waitFor({ state: 'attached' });
+  await page.getByRole('button', { name: /Send|Hire|Queue/ }).last().click();
+  assert.equal(await page.evaluate(() => window.queued), undefined, 'a disconnected task cannot be queued from its old editor');
+  connected = true;
+  await page.reload();
+  await page.getByRole('button', { name: /Fix payroll/ }).waitFor();
   failRefresh = true;
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   await page.getByRole('alert').filter({ hasText: 'rate limit' }).waitFor();
