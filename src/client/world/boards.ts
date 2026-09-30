@@ -1,7 +1,8 @@
+import type { GitSummary } from '../../shared/git-summary';
+import { timeAgo } from '../ui/dom';
 import * as THREE from 'three';
-import { DESK_BY_ID } from '../../shared/layout';
 import type { GhIssue, GhPull, GhState, QueueState, QueueTask, ServiceInfo, WorkerInfo } from '../../shared/protocol';
-import { workerForPull } from '../state';
+import { store, workerForPull } from '../state';
 
 export const NOTE_COLORS = ['#fff7b0', '#ffd6e0', '#caffbf', '#bde0fe', '#ffe5b4'];
 export const PINS = ['#ef476f', '#118ab2', '#06d6a0', '#ffd166'];
@@ -167,7 +168,7 @@ export class BoardTexture {
         g.stroke();
         g.fillStyle = '#5c5f73';
         g.font = `800 ${Math.round(fs * 0.78)}px Nunito, ui-rounded, system-ui, sans-serif`;
-        g.fillText(clip(g, `${w.name} · ${DESK_BY_ID.get(w.deskId)?.label ?? 'desk'}`, nw - 28 - r * 2 - 8), -nw / 2 + 14 + r * 2 + 8, y + fs * 0.28);
+        g.fillText(clip(g, `${w.name} · ${store.plan().byId.get(w.deskId)?.label ?? 'desk'}`, nw - 28 - r * 2 - 8), -nw / 2 + 14 + r * 2 + 8, y + fs * 0.28);
       }
       g.beginPath();
       g.arc(0, -nh / 2 + 10, 11, 0, Math.PI * 2);
@@ -207,8 +208,8 @@ export class ServicesBoardTexture {
 
   render(items: ServiceInfo[], workers: Map<string, WorkerInfo>) {
     const rows = items.map((s) => {
-      const w = workers.get(s.workerId);
-      return { port: s.port, title: s.title || s.command, who: [w?.name ?? 'A worker', w?.worktree?.branch].filter(Boolean).join(' · '), color: w?.color ?? '#8d99ae' };
+      const w = s.workerId ? workers.get(s.workerId) : undefined;
+      return { port: s.port, title: s.title || s.command, who: [w?.name ?? (s.source === 'docker' ? 'Docker Compose' : 'Shared project'), w?.worktree?.branch].filter(Boolean).join(' · '), color: w?.color ?? '#8d99ae' };
     });
     // Worker updates stream in constantly; only redraw when what's shown changes.
     const key = JSON.stringify(rows);
@@ -229,7 +230,7 @@ export class ServicesBoardTexture {
       g.fillText('No web servers running', W / 2, H / 2 - 20);
       g.fillStyle = 'rgba(233,236,239,.6)';
       g.font = '700 32px Nunito, ui-rounded, system-ui, sans-serif';
-      g.fillText('When a worker starts one, it shows up here', W / 2, H / 2 + 36);
+      g.fillText('Docker and project web servers appear here', W / 2, H / 2 + 36);
       g.textAlign = 'left';
       this.texture.needsUpdate = true;
       return;
@@ -399,4 +400,40 @@ function clip(g: CanvasRenderingContext2D, text: string, maxW: number): string {
   let s = text;
   while (s.length > 1 && g.measureText(`${s}…`).width > maxW) s = s.slice(0, -1);
   return `${s}…`;
+}
+
+/** Live summary of the floor checkout; E opens the shared Git terminal. */
+export class LazygitBoardTexture {
+  readonly texture: THREE.CanvasTexture;
+  private canvas = document.createElement('canvas');
+  private ctx: CanvasRenderingContext2D;
+  constructor() {
+    this.canvas.width = 800; this.canvas.height = 600;
+    this.ctx = this.canvas.getContext('2d')!;
+    this.texture = new THREE.CanvasTexture(this.canvas);
+    this.texture.colorSpace = THREE.SRGBColorSpace;
+    this.texture.anisotropy = 8;
+    this.render();
+  }
+  render(state?: GitSummary) {
+    const g=this.ctx;
+    g.fillStyle='#23303b';g.fillRect(0,0,800,600);g.textAlign='center';
+    const text=(value: string,y: number,size: number,color='#fffaf3')=>{
+      g.fillStyle=color;g.font=`800 ${size}px Nunito, ui-rounded, system-ui, sans-serif`;
+      g.fillText(clip(g,value,730),400,y);
+    };
+    text(state?.branch ?? 'Project Git status',70,42,'#7cf29a');
+    if(!state || state.error) {
+      text(state?.error ?? 'Loading…',250,42,'#b7c8d4');
+    }else{
+      text(`${state.changed} uncommitted ${state.changed===1?'file':'files'}`,166,54);
+      text(`${state.staged} staged · ${state.unstaged} unstaged · ${state.untracked} new`,222,28,'#b7c8d4');
+      if(state.conflicts)text(`${state.conflicts} conflicted`,263,28,'#ef476f');
+      text(state.ahead===undefined||state.behind===undefined?'No upstream comparison':`↑ ${state.ahead} to push     ↓ ${state.behind} to pull`,340,42,'#7cf29a');
+      text(state.upstream ? `vs ${state.upstream}` : 'No tracking branch configured',393,28,'#b7c8d4');
+      text(state.fetchedAt ? `Fetched ${timeAgo(state.fetchedAt)} · cached refs` : 'Remote refs not fetched here yet',450,24,'#b7c8d4');
+    }
+    text('E  Open Git terminal',550,32,'#7cf29a');
+    this.texture.needsUpdate=true;
+  }
 }

@@ -1,6 +1,7 @@
 import type { PlanWindow } from '../../shared/protocol';
 import { store } from '../state';
-import { $, h } from './dom';
+import { $, h, openModal } from './dom';
+import type { Net } from '../net';
 import { panelHide } from './menu';
 
 /** Numbers older than this say when they were read. */
@@ -44,4 +45,29 @@ export function renderLimits() {
   const plan = s.plan ? s.plan.charAt(0).toUpperCase() + s.plan.slice(1) : '';
   el.replaceChildren(h('h3', {}, 'Claude limits', plan ? h('span.plan', {}, plan) : null, panelHide('limits')), ...s.windows.flatMap((w) => windowRow(w, now)));
   if (now - s.at > STALE_MS) el.append(h('div.row.muted', {}, `As of ${new Date(s.at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`));
+}
+
+/** Full details for the two-provider wall display, including unavailable/stale readings. */
+export function openPlanLimits(net: Net) {
+  const body = h('div.body');
+  const refresh = h('button.btn', {type:'button'}, 'Refresh');
+  const el = h('div.modal', {role:'dialog', 'aria-label':'Weekly limits', style:'width:min(700px,100%)'}, h('header', {}, h('h2', {}, 'Codex / Claude limits'), refresh), body);
+  const render = () => {
+    body.replaceChildren(h('p.note', {}, 'Account-wide usage for the provider accounts signed in on this server. Percentages show usage, not remaining quota.'));
+    for (const [name, state] of [['Codex', store.limits.codex], ['Claude', store.limits]] as const) {
+      const section = h('section', {style:'margin:20px 0'}, h('h3', {}, name, state?.plan ? ` · ${state.plan}` : ''));
+      if (state?.error) section.append(h('p.note', {}, state.error));
+      if (!state?.windows.length) section.append(h('p', {}, 'Usage unavailable'));
+      for (const window of state?.windows ?? []) {
+        section.append(h('p', {}, `${window.label}: ${Math.round(window.pct)}% used`, window.resetsAt ? ` · resets ${fmtReset(window.resetsAt)}` : ''));
+      }
+      if (state?.at) section.append(h('p.note', {}, `Last read: ${new Date(state.at).toLocaleString()}`));
+      body.append(section);
+    }
+  };
+  const unsub = store.on('limits', render);
+  const tick = setInterval(render, 30_000);
+  openModal(el, {doing:'📊 checking weekly limits', onClose:()=>{unsub();clearInterval(tick);}});
+  refresh.addEventListener('click', () => net.send({t:'limits.refresh'}));
+  render(); net.send({t:'limits.refresh'});
 }

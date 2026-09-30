@@ -1,3 +1,4 @@
+import { dockerServices, projectForDirectory, isContainerProxy, type ServiceProject } from './service-discovery.js';
 import { execFile } from 'node:child_process';
 import { readFile, readlink } from 'node:fs/promises';
 import http from 'node:http';
@@ -7,7 +8,7 @@ import type { ServiceInfo } from '../shared/protocol.js';
 // Finds the web servers workers start (npm run dev, python -m http.server, ...) so teammates can
 // reach them through the office: every few seconds, list the TCP ports this user's processes
 // listen on, and credit each one to the worker whose terminal started it. Servers no worker
-// started (yours, from your own terminal) aren't listed.
+// started can also be matched to their project checkout or Docker Compose labels.
 
 const SCAN_MS = 4000;
 /** A port that stopped listening this recently still gets a "stopped" page instead of the office. */
@@ -45,6 +46,7 @@ interface Tracked {
   probedAt: number;
   probes: number;
   probing: boolean;
+  identity?: string;
 }
 
 function run(cmd: string, args: string[]): Promise<string> {
@@ -177,6 +179,7 @@ export class Services {
   constructor(
     private owners: () => ServiceOwner[],
     private onChange: (items: ServiceInfo[]) => void,
+    private projects: () => ServiceProject[] = () => [],
   ) {}
 
   start() {
@@ -218,7 +221,8 @@ export class Services {
 
   private async scanOnce() {
     const owners = this.owners();
-    const [ls, procs] = await Promise.all([listeners(), processes()]);
+    const projects = this.projects();
+    const [ls, procs, containers] = await Promise.all([listeners(), processes(), this.docker(projects)]);
     const byPty = new Map(owners.filter((o) => o.pid).map((o) => [o.pid!, o]));
     const byId = new Map(owners.map((o) => [o.workerId, o]));
 
@@ -230,11 +234,11 @@ export class Services {
       if (!cur || (l.host === '127.0.0.1' && cur.host !== '127.0.0.1')) ports.set(l.port, l);
     }
 
-    const found = new Map<number, { l: Listener; workerId: string; cwd?: string }>();
+    const found = new Map<number, { l: Listener; workerId?: string; floorId?: string; root?: string; cwd?: string; command?: string; identity?: string; source?: ServiceInfo['source'] }>();
     const unresolved: Listener[] = [];
     for (const l of ports.values()) {
       const args = procs.get(l.pid)?.args ?? '';
-      if (NOISE.test(args)) continue;
+      if (NOISE.test(args) || isContainerProxy(args) || byPty.get(l.pid)?.agent) continue;
       // Walk up to the worker terminal that started it.
       let owner: ServiceOwner | undefined;
       let underOffice = false;
@@ -264,6 +268,16 @@ export class Services {
       const cwd = dirs.get(l.pid);
       const owner = cwd ? owners.filter((o) => o.cwd !== o.root && inside(o.cwd, cwd)).sort((a, b) => b.cwd.length - a.cwd.length)[0] : undefined;
       if (owner) found.set(l.port, { l, workerId: owner.workerId, cwd });
+      else if (cwd) {
+        const project = projectForDirectory(cwd, projects);
+        if (project) found.set(l.port, { l, floorId: project.id, root: project.dir, cwd, source: 'project' });
+      }
+    }
+    for (const c of containers) {
+      found.set(c.port, {
+        l: { pid: 0, host: c.host, port: c.port }, floorId: c.floorId, root: c.root,
+        cwd: c.cwd, command: c.command, identity: c.id, source: 'docker',
+      });
     }
     // Working directories for the board, for servers that are new since the last scan.
     const need = [...found].filter(([port, f]) => f.cwd === undefined && this.tracked.get(port)?.info.pid !== f.l.pid).map(([, f]) => f.l.pid);
@@ -277,24 +291,46 @@ export class Services {
     }
     for (const [port, f] of found) {
       const cwd = f.cwd ?? more.get(f.l.pid);
-      const root = byId.get(f.workerId)?.root;
+      const root = f.root ?? (f.workerId ? byId.get(f.workerId)?.root : undefined);
       const rel = cwd && root && inside(root, cwd) ? path.relative(root, cwd) : undefined;
-      const fresh = { host: f.l.host, pid: f.l.pid, command: shortCommand(procs.get(f.l.pid)?.args ?? '?'), cwd: rel, since: now };
+      const directUrl = await this.directUrl(f.l.host, port, cwd ?? root);
+      const fresh = { host: f.l.host, pid: f.l.pid, command: f.command ?? shortCommand(procs.get(f.l.pid)?.args ?? '?'), cwd: rel, since: now, floorId: f.floorId, source: f.source ?? 'worker' as const, directUrl };
       let t = this.tracked.get(port);
-      if (!t) {
-        t = { info: { port, workerId: f.workerId, ...fresh }, http: false, probedAt: 0, probes: 0, probing: false };
+      if (!t || t.info.pid !== f.l.pid || t.identity !== f.identity || t.info.host !== f.l.host) {
+        t = { info: { port, workerId: f.workerId, ...fresh }, http: false, probedAt: 0, probes: 0, probing: false, identity: f.identity };
         this.tracked.set(port, t);
         this.gone.delete(port);
-      } else if (t.info.pid !== f.l.pid) {
-        // Restarted on the same port (a dev server reloading its config): same row, fresh look.
-        Object.assign(t.info, fresh);
-        t.probedAt = 0;
-        t.probes = 0;
       }
       t.info.workerId = f.workerId;
+      t.info.floorId = f.floorId;
+      t.info.source = fresh.source;
+      t.info.directUrl = directUrl;
       this.maybeProbe(t, now);
     }
     this.publish();
+  }
+
+  private async docker(projects: ServiceProject[]) {
+    if (!projects.length) return [];
+    const ids = (await run('docker', ['ps', '-q'])).trim().split(/\s+/).filter(id => /^[a-f0-9]+$/.test(id));
+    if (!ids.length) return [];
+    // Project only these fields: never load container environment variables or credentials.
+    const format = '{"id":{{json .Id}},"name":{{json .Name}},"dir":{{json (index .Config.Labels "com.docker.compose.project.working_dir")}},"service":{{json (index .Config.Labels "com.docker.compose.service")}},"ports":{{json .NetworkSettings.Ports}}}';
+    return dockerServices(await run('docker', ['inspect', '--format', format, ...ids]), projects);
+  }
+
+  private async directUrl(host: string, port: number, cwd?: string): Promise<string | undefined> {
+    if (host === 'localhost' || host === '::1' || host.startsWith('127.')) return undefined;
+    // Laravel uses its configured hostname for redirects and tenant routing.
+    if (cwd) {
+      const env = await readFile(path.join(cwd, '.env'), 'utf8').catch(() => '');
+      const value = /^APP_URL=["']?([^\r\n"']+)/m.exec(env)?.[1]?.trim();
+      if (value) try {
+        const url = new URL(value);
+        if (url.protocol === 'http:' && !url.username && !url.password && Number(url.port || 80) === port) return url.origin;
+      } catch { /* Use the listening address. */ }
+    }
+    return `http://${host.includes(':') ? `[${host}]` : host}:${port}`;
   }
 
   /** New servers get probed right away and again while they boot; known web servers now and then for their title. */

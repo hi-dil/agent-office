@@ -43,7 +43,7 @@ export class PlanLimitsReader {
   }
 
   get state(): PlanLimits {
-    return this.limits;
+    return this.claude ? this.limits : { ...this.limits, error: 'Claude is not installed' };
   }
 
   /** Reads now, unless a read is running or one just finished. */
@@ -73,6 +73,8 @@ export class PlanLimitsReader {
     if (this.closed) return;
     let next = POLL_MS;
     if (answer === null) {
+      this.limits = { ...this.limits, error: 'Could not read Claude limits; check Claude sign-in on the server' };
+      this.onChange(this.limits);
       if (++this.fails >= FAILS_BEFORE_BACKOFF) {
         this.fails = 0;
         next = BACKOFF_MS;
