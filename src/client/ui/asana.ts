@@ -1,3 +1,4 @@
+import './asana.css';
 import { asanaTaskPrompt, type AsanaState, type AsanaTask } from '../../shared/asana';
 import type { AgentProvider, AgentEffort } from '../../shared/protocol';
 import { store } from '../state';

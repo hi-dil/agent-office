@@ -1,3 +1,4 @@
+import './menu.css';
 import { store, type HudPanel, type Settings, type Topic } from '../state';
 import { waitingOnSomeone } from '../notify';
 import { DESK_BY_ID } from '../../shared/layout';
@@ -52,6 +53,8 @@ export function panelHide(id: HudPanel): HTMLElement {
 export interface Hud {
   /** Redraws the top bar for a change the store doesn't announce (voice, hanging a picture). */
   refresh(): void;
+  /** Register actions supplied by an installed feature. */
+  addActions(extra: HudAction[]): void;
   toggleMenu(): void;
 }
 
@@ -100,6 +103,7 @@ export function mountHud(actions: HudAction[], settings: Settings, save: () => v
       {
         type: 'button',
         class: classOf(a, blocked),
+        'data-action': a.id,
         'aria-label': labelOf(a),
         title: blocked ?? a.title?.() ?? `${labelOf(a)}${keyOf(a) ? ` (${keyOf(a)})` : ''}`,
         onclick: () => a.run(),
@@ -279,5 +283,5 @@ export function mountHud(actions: HudAction[], settings: Settings, save: () => v
   for (const t of ['workers', 'peers', 'issues', 'pulls', 'services', 'queue', 'meeting', 'upgrade', 'me', 'floors', 'signins'] as Topic[]) store.on(t, render);
   applyPanels();
   render();
-  return { refresh: render, toggleMenu };
+  return { refresh: render, toggleMenu, addActions(extra) { actions.push(...extra); render(); } };
 }

@@ -1,0 +1,24 @@
+/* Asana uses the floor's board, task detail and worker handoff patterns. */
+.asana-board header { flex-wrap: wrap; }
+.asana-board .asana-project-link { padding: 8px 16px; }
+.asana-notice { margin: 0 12px 10px; padding: 10px 12px; border: 2px solid var(--ink); border-radius: 10px; background: #fff0cc; font-size: 14px; }
+.asana-setup { padding: 0 16px 16px; overflow: auto; flex-shrink: 0; max-height: 55vh; }
+.asana-setup p { margin: 8px 0; }
+.asana-setup input[type=password] { width: 100%; font: inherit; border: 3px solid var(--ink); border-radius: 12px; padding: 10px 12px; background: #fff; }
+.asana-setup input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.asana-setup label { margin-top: 8px; }
+.asana-help { font-size: 12px; color: var(--muted); }
+.asana-buttons { display: flex; gap: 8px; margin-top: 12px; }
+.asana-card { display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); }
+.asana-card .ttl, .asana-card .meta { display: block; overflow-wrap: anywhere; }
+.asana-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.asana-task footer { flex-wrap: wrap; }
+.asana-board [hidden] { display: none !important; }
+@media (max-width: 600px) {
+  .asana-board header h2 { flex-basis: 50%; }
+  .asana-board .board-status { font-size: 11px; }
+  .asana-board header .btn { padding: 5px 8px; font-size: 12px; }
+  .asana-board .body { min-height: 130px; }
+  .asana-task footer .btn { flex: 1; }
+}
+

@@ -9,7 +9,7 @@ try {
  const page=await browser.newPage({viewport:{width:1400,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/tools-harness',route=>route.fulfill({contentType:'text/html',body:`<style>body{margin:0}</style><div id="modal-root"></div><div id="toasts"></div><script type="module">
  import * as THREE from '/@fs/${process.cwd()}/node_modules/three/build/three.module.js';
- import {buildOffice} from '/world/office.ts';import {LazygitBoardTexture} from '/world/boards.ts';import {PlanLimitsTexture} from '/world/plan-limits.ts';import {openPlanLimits} from '/ui/limits.ts';import {store} from '/state.ts';
+ import {buildOffice} from '/world/office/build.ts';import {LazygitBoardTexture} from '/features/project-tools/git-board.ts';import {PlanLimitsTexture} from '/world/plan-limits.ts';import {openPlanLimits} from '/ui/limits.ts';import {store} from '/state.ts';
  const office=buildOffice();const scene=new THREE.Scene();scene.background=new THREE.Color('#d7e1e0');scene.add(office.group);scene.add(new THREE.HemisphereLight(0xffffff,0xaaaaaa,3));
  const git=new LazygitBoardTexture();git.render({branch:'main',changed:12,staged:2,unstaged:7,untracked:3,conflicts:0,ahead:4,behind:1,upstream:'origin/main',fetchedAt:Date.now()-60000,at:Date.now()});const limits=new PlanLimitsTexture();store.limits={windows:[{label:'Week',pct:63,resetsAt:Date.now()+86400000}],at:Date.now(),codex:{windows:[{label:'Week',pct:17,resetsAt:Date.now()+86400000*4}],at:Date.now()}};limits.render(store.limits);
  office.boardMeshes.lazygit.material=new THREE.MeshBasicMaterial({map:git.texture});office.boardMeshes.limits.material=new THREE.MeshBasicMaterial({map:limits.texture});
