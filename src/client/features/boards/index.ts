@@ -1,3 +1,5 @@
+import type { DiskUsage } from '../../../shared/disk';
+import { watchDisk } from './disk';
 import { issueBoardSource, onIssueBoardSource } from '../../shared/issue-board';
 /**
  * The boards on the walls: the issues board (the open issues nobody has started on, less the cards
@@ -161,7 +163,10 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   });
   // The machine monitor on the west wall.
   const machineTex = new MachineTexture();
-  mountBoard(office.machineScreen, machineTex.texture, () => machineTex.render(store.machine), ['machine']);
+  let disk: DiskUsage | null | undefined;
+  const renderMachine = () => machineTex.render(store.machine, disk);
+  mountBoard(office.machineScreen, machineTex.texture, renderMachine, ['machine']);
+  watchDisk((reading) => { disk = reading; renderMachine(); });
   // The meeting room: its output as it's written on the back wall, and how it's going on the door.
   const meetingBoardTex = new MeetingBoardTexture();
   mountBoard(office.meetingBoard, meetingBoardTex.texture, () => meetingBoardTex.render(store.meeting), ['meeting']);

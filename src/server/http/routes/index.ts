@@ -1,3 +1,4 @@
+import { machineDiskRoute } from './machine-disk.js';
 import { asanaRoute } from './asana.js';
 import { gitSummaryRoute } from './git-summary.js';
 import { terminalImageRoute } from './terminal-images.js';
@@ -29,6 +30,7 @@ export const routes: readonly Route[] = [
   pageRoutes.join,
   pageRoutes.favicon,
   // Signed in.
+  machineDiskRoute,
   asanaRoute,
   gitSummaryRoute,
   terminalImageRoute,
