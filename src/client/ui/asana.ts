@@ -1,3 +1,4 @@
+import { asanaChanged } from '../shared/asana-events';
 import './asana.css';
 import { asanaTaskPrompt, type AsanaState, type AsanaTask } from '../../shared/asana';
 import type { AgentProvider, AgentEffort } from '../../shared/protocol';
@@ -98,6 +99,7 @@ export function openAsanaBoard(actions: Actions) {
         connectionVersion++; detail?.close();
       }
       state = data;
+      asanaChanged();
       if (detailTask && !state?.items.some(t => t.gid === detailTask?.gid && t.url === detailTask?.url)) detail?.close();
       if (method !== 'GET') { editing = false; token.value = ''; detail?.close(); }
       if (!editing) project.value = state?.project?.gid ?? '';

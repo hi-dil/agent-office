@@ -1,3 +1,4 @@
+import { watchAsanaWall } from './asana-wall';
 /** Local project integrations, installed alongside the upstream office features. */
 import * as THREE from 'three';
 import type { Ctx } from '../../core/context';
@@ -46,30 +47,32 @@ export function installProjectTools(ctx: Ctx, parts: Pick<Parts, 'actions' | 'wa
   ctx.messages.on('lazygit.opened', msg => {
     if (store.floor === msg.floorId) parts.waiting.openWorkerTerminal(msg.workerId);
   });
+  const openAsana = () => {
+    const floor = store.floor;
+    openAsanaBoard({
+      assign: (prompt, title, stillValid) => {
+        if (store.floor !== floor) return;
+        const desk = parts.actions.firstFreeSeat();
+        const awake = [...store.workers.values()].filter(w => w.kind === 'agent' && !isAsleep(w.status));
+        if (!desk && !awake.length) return toast('Every desk and bean bag is taken — send a worker home first', 'warn');
+        openAsk({
+          title: `Asana: ${title}`, initial: prompt,
+          newDesk: desk ? ctx.plan().byId.get(desk)?.label : undefined,
+          workers: awake.map(w => ({ id: w.id, name: w.name, color: w.color, status: w.status })),
+          worktreeOption: !!store.project?.branch, providerOption: true, repoOptions: repoChoices(),
+          onSubmit: (text, to, worktree, provider, model, effort, repos) => {
+            if (store.floor !== floor || !stillValid()) return toast('The Asana connection or task changed. Reopen the task before sending it.', 'warn');
+            if (to) net.send({ t: 'worker.prompt', workerId: to, prompt: text });
+            else if (desk) parts.actions.hire(desk, text, worktree, provider, model, effort, undefined, repos);
+          },
+        });
+      },
+      queue: (prompt, title, provider, model, effort) => { if (store.floor === floor) net.send({ t: 'queue.add', prompt, title, provider, model, effort }); },
+    });
+  };
+  watchAsanaWall(openAsana);
   ctx.hud.addActions([
-    { id: 'asana', icon: '🔴', label: 'Asana tasks', section: 'Open', shown: () => !!store.project, run: () => {
-      const floor = store.floor;
-      openAsanaBoard({
-        assign: (prompt, title, stillValid) => {
-          if (store.floor !== floor) return;
-          const desk = parts.actions.firstFreeSeat();
-          const awake = [...store.workers.values()].filter(w => w.kind === 'agent' && !isAsleep(w.status));
-          if (!desk && !awake.length) return toast('Every desk and bean bag is taken — send a worker home first', 'warn');
-          openAsk({
-            title: `Asana: ${title}`, initial: prompt,
-            newDesk: desk ? ctx.plan().byId.get(desk)?.label : undefined,
-            workers: awake.map(w => ({ id: w.id, name: w.name, color: w.color, status: w.status })),
-            worktreeOption: !!store.project?.branch, providerOption: true, repoOptions: repoChoices(),
-            onSubmit: (text, to, worktree, provider, model, effort, repos) => {
-              if (store.floor !== floor || !stillValid()) return toast('The Asana connection or task changed. Reopen the task before sending it.', 'warn');
-              if (to) net.send({ t: 'worker.prompt', workerId: to, prompt: text });
-              else if (desk) parts.actions.hire(desk, text, worktree, provider, model, effort, undefined, repos);
-            },
-          });
-        },
-        queue: (prompt, title, provider, model, effort) => { if (store.floor === floor) net.send({ t: 'queue.add', prompt, title, provider, model, effort }); },
-      });
-    } },
+    { id: 'asana', icon: '🔴', label: 'Asana tasks', section: 'Open', shown: () => !!store.project, run: openAsana },
     { id: 'lazygit', icon: '🌿', label: 'Lazygit', section: 'Open', shown: () => !!store.project, title: () => 'Shared Git terminal for this project', run: () => net.send({ t: 'lazygit.open' }) },
   ]);
 }

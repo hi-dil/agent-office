@@ -16,9 +16,11 @@ export const asanaRoute = {
       catch { return send(res, 400, { error: 'Invalid Asana settings (maximum 8 KB).' }); }
     }
     const result = await asanaRequest(floor?.asana, {
+      cached: url.searchParams.get('cached') === '1',
       method: req.method ?? '', admin: meOf(session.account?.id).admin,
       sameOrigin: sameOrigin(req, cfg), refresh: p === '/api/asana/refresh', body,
     });
+    if (result.status < 300 && (req.method === 'DELETE' || (req.method === 'POST' && p === '/api/asana'))) void floor?.github.refresh();
     return send(res, result.status, result.body, { 'cache-control': 'no-store' });
   },
 } satisfies Route;

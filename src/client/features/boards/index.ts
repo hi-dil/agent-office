@@ -1,9 +1,10 @@
+import { issueBoardSource, onIssueBoardSource } from '../../shared/issue-board';
 /**
  * The boards on the walls: the issues board (the open issues nobody has started on, less the cards
  * someone's carrying around), the PR board, the services board, the task queue, the machine monitor
  * and the meeting room's two. What E does at each is defined with it.
  */
-import type * as THREE from 'three';
+import * as THREE from 'three';
 import type { GhIssue } from '../../../shared/protocol';
 import type { Ctx } from '../../core/context';
 import { aside, boardHint, hintTitle, key, onE } from '../../core/hint';
@@ -63,14 +64,36 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
     for (const p of store.peers.values()) if (p.carrying && p.id !== store.you && store.onMyFloor(p)) off.add(p.carrying.issue);
     return off;
   }
+  let issueMesh = office.boardMeshes.issues;
   const issuesTex = new BoardTexture('issues');
+  let customIssuesTexture: THREE.CanvasTexture | undefined;
+  function issueTexture() {
+    const source = issueBoardSource();
+    if (!source) return issuesTex.texture;
+    if (customIssuesTexture?.image !== source.canvas) {
+      customIssuesTexture?.dispose();
+      customIssuesTexture = new THREE.CanvasTexture(source.canvas);
+      customIssuesTexture.colorSpace = THREE.SRGBColorSpace;
+    }
+    customIssuesTexture.needsUpdate = true;
+    return customIssuesTexture;
+  }
   // The cork holds the issues nobody has started on: one that's in progress comes off it, as a closed one does.
   const renderIssuesBoard = () => {
+    const source = issueBoardSource();
+    showOn(issueMesh, issueTexture());
+    showOn(office.boardMeshes.issues, issueTexture());
+    if (source) {
+      // Asana cards open the task list; never expose GitHub card IDs to picking/carrying.
+      issuesTex.render({ items: [], fetchedAt: 0, loading: false });
+      return;
+    }
     const off = offBoard();
     issuesTex.render({ ...store.issues, items: store.issues.items.filter((i) => !off.has(i.number) && !inProgress(i, store.taskForIssue(i.number))) });
   };
   // The queue too: a task that starts running takes its issue off the board before GitHub says it's assigned.
   mountBoard(office.boardMeshes.issues, issuesTex.texture, renderIssuesBoard, ['issues', 'queue']);
+  onIssueBoardSource(renderIssuesBoard);
   let carriedOff = '';
   store.on('peers', () => {
     const k = [...offBoard()].join(',');
@@ -103,11 +126,15 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   ctx.interactions.define('issues', {
     reach: 9,
     hint: () => {
+      const source = issueBoardSource();
+      if (source) return boardHint(source.title);
       const aimedNote = deps.aimedNote();
       if (aimedNote) return { k: String(aimedNote.number), parts: [hintTitle(clip(`📌 #${aimedNote.number} ${aimedNote.title}`, 60)), key('E', 'Take it'), key('O', 'Read it')] };
       return issuesTex.hasNotes ? { k: 'notes', parts: [hintTitle('📌 Issues board'), key('E', 'Open'), aside('or point at a note to take it')] } : boardHint('📌 Issues board');
     },
     use: (_it, key, note) => {
+      const source = issueBoardSource();
+      if (source) { if (key === 'E' || key === 'O') source.open(); return; }
       // A note on the issues board: E takes it straight off the cork, O opens it to read first.
       if (note && key === 'E') return deps.pickUp(note);
       if (note && key === 'O') return openIssue(note, ctx.net, deps.boardActions());
@@ -142,7 +169,8 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   mountBoard(office.meetingSign, meetingSignTex.texture, () => meetingSignTex.render(store.meeting), ['meeting']);
   /** Puts every board's texture up on `w`'s boards. */
   function dressBoards(w: World) {
-    showOn(w.boardMeshes.issues, issuesTex.texture);
+    issueMesh = w.boardMeshes.issues;
+    showOn(issueMesh, issueTexture());
     showOn(w.boardMeshes.pulls, pullsTex.texture);
     showOn(w.boardMeshes.services, servicesTex.texture);
     showOn(w.boardMeshes.queue, queueTex.texture);

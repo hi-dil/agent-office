@@ -148,6 +148,7 @@ export class GitHub {
     private dir: string,
     private onIssues: (s: GhState<GhIssue>) => void,
     private onPulls: (s: GhState<GhPull>) => void,
+    private issuesEnabled: () => boolean = () => true,
   ) {}
 
   start() {
@@ -412,7 +413,13 @@ export class GitHub {
   }
 
   /** Asks GitHub for the issues. With a look already under way it's that one, which may have been asked before whatever just changed. */
+  private clearIssues() {
+    this.issues = { items: [], fetchedAt: Date.now(), loading: false };
+    this.onIssues(this.issues);
+  }
+
   private refreshIssues(): Promise<void> {
+    if (!this.issuesEnabled()) { this.clearIssues(); return Promise.resolve(); }
     this.listing ??= this.listIssues().finally(() => (this.listing = undefined));
     return this.listing;
   }
@@ -428,6 +435,7 @@ export class GitHub {
         gh(['issue', 'list', '--state', 'open', '--limit', '300', '--json', fields], this.dir),
         gh(['issue', 'list', '--state', 'closed', '--limit', '40', '--json', fields], this.dir),
       ]);
+      if (!this.issuesEnabled()) return this.clearIssues();
       const fetched: GhIssue[] = [...JSON.parse(open), ...JSON.parse(closed)].map((i: any) => ({
         number: i.number,
         title: i.title,
@@ -444,6 +452,7 @@ export class GitHub {
       const items = this.claims.mark(this.relabel('issue', fetched, asked), asked);
       this.issues = { items, fetchedAt: Date.now(), loading: false };
     } catch (err) {
+      if (!this.issuesEnabled()) return this.clearIssues();
       this.issues = { ...this.issues, loading: false, error: (err as Error).message, fetchedAt: Date.now() };
     }
     this.onIssues(this.issues);

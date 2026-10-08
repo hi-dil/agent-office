@@ -1,0 +1,22 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { GitHub } from '../src/server/github.js';
+test('Asana floors skip GitHub issue listing and clear old issue cards; disconnected floors resume listing', async () => {
+  let enabled = false;
+  let listings = 0;
+  let pulls = 0;
+  const github = new GitHub('.', () => {}, () => {}, () => enabled);
+  const internal = github as any;
+  internal.listIssues = async () => { listings++; };
+  internal.refreshPulls = async () => { pulls++; };
+  github.issues = { items: [{ number: 1 } as any], fetchedAt: 1, loading: false, error: 'old gh error' };
+  await github.refresh();
+  assert.equal(listings, 0);
+  assert.equal(pulls, 1);
+  assert.deepEqual(github.issues.items, []);
+  assert.equal(github.issues.error, undefined);
+  enabled = true;
+  await github.refresh();
+  assert.equal(listings, 1);
+  assert.equal(pulls, 2);
+});

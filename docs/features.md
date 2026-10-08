@@ -79,3 +79,9 @@ Everything in the office, room by room. Back to the [README](../README.md).
 - **Weekly limits:** the office board shows Codex and Claude usage windows and reset times when available. Claude uses the signed-in account’s plan; Codex uses the server’s CLI sign-in.
 - **Services:** discover Docker Compose published web ports and host Vite servers for the floor’s checkout, including servers started outside an agent.
 - **Terminal images:** paste an image or use Attach image to upload it and insert its path into the prompt. Escape goes to the agent; Ctrl+] closes the terminal.
+
+### Asana on the Issues board
+
+On a floor with an Asana project connected, the Issues wall board shows incomplete Asana tasks grouped by section. Press **E** or open **Issues** from the menu to read tasks, hand one to a worker, or add it to the queue. The wall shows a preview; open the board for the complete list. Task handoff does not modify Asana.
+
+Connect or disconnect a project through **Asana tasks → Connection** as an office admin. Linked floors stop GitHub issue-list polling; floors without an Asana project use GitHub issues. Pull requests continue to use GitHub. Connection errors stay on the Asana board rather than switching sources.

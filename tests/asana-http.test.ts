@@ -47,3 +47,16 @@ test('malformed settings do not overwrite the saved project', async t => {
     assert.equal(board.state().project?.gid, '1217014847874353');
   }
 });
+
+test('cached wall reads return connection metadata without waiting for Asana', async t => {
+  const board = setup(t);
+  await asanaRequest(board, admin);
+  let finish!: () => void;
+  board.refresh = () => new Promise<void>(resolve => { finish = resolve; });
+  const result = asanaRequest(board, { method: 'GET', admin: false, sameOrigin: true, cached: true });
+  const first = await Promise.race([result, new Promise<'blocked'>(resolve => setTimeout(() => resolve('blocked'), 25))]);
+  finish();
+  assert.notEqual(first, 'blocked');
+  assert.equal((await result).status, 200);
+  assert.equal(((await result).body as any).project.gid, '1217014847874353');
+});

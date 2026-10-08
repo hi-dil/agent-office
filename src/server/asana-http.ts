@@ -5,6 +5,8 @@ interface Request {
   admin: boolean;
   sameOrigin: boolean;
   refresh?: boolean;
+  /** Return saved connection/tasks immediately while refreshing in the background. */
+  cached?: boolean;
   body?: unknown;
 }
 interface Result { status: number; body: unknown }
@@ -17,7 +19,8 @@ export async function asanaRequest(board: AsanaBoard | undefined, req: Request):
   if (req.method !== 'GET' && !req.sameOrigin) return error(403, 'Forbidden');
   if (req.method !== 'GET' && !req.refresh && !req.admin) return error(403, 'Only office admins can change the Asana connection.');
   try {
-    if (req.method === 'GET' || req.refresh) await board.refresh(!!req.refresh);
+    if (req.method === 'GET' && req.cached) void board.refresh().catch(() => {});
+    else if (req.method === 'GET' || req.refresh) await board.refresh(!!req.refresh);
     else if (req.method === 'DELETE') board.disconnect();
     else {
       const body = req.body as { project?: unknown; token?: unknown } | null;
