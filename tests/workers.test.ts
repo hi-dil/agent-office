@@ -1672,3 +1672,31 @@ test("a worker whose worktree was deleted outside the office waits, marked lost,
   assert.equal(after.get(gone.id)?.lost, undefined);
   assert.deepEqual(toasts, []);
 });
+
+test('resumed Codex at its ready prompt stays quiet without a SessionStart hook', async (t) => {
+  const f = carryOnFixture(t);
+  writeFileSync(f.codex, fakeAgent.replace('fake-agent-ready', '› Ask Codex to do anything\\r\\n  GPT-6.1-Sol high · Ready · weekly 6% left'));
+  writeFileSync(path.join(f.data, 'workers.json'), JSON.stringify([{ id: 'ready-codex', deskId: 'desk-1', provider: 'codex', sessionId: 'previous-session', name: 'Ready' }]));
+  const updates: WorkerInfo[] = [];
+  const workers = manager(f, f.codex, updates);
+  t.after(() => workers.shutdown());
+  await workers.start();
+  await waitFor(() => workers.get('ready-codex')?.status, s => s === 'idle');
+  assert.equal(workers.get('ready-codex')?.acked, true);
+  assert.ok(!updates.some(w => w.status === 'needs_input'));
+});
+
+test('a cleared completion stays cleared when the office adopts its surviving terminal', async (t) => {
+  const f = carryOnFixture(t);
+  const before = manager(f, f.claude, []);
+  await before.start();
+  const worker = await hireInState(f, before, 'desk-1', 'cleared', 'done');
+  before.attach(worker.id, 'viewer', 'Tester');
+  before.detach(worker.id, 'viewer');
+  before.shutdown(true);
+  const after = manager(f, f.claude, []);
+  t.after(() => after.shutdown());
+  await after.start();
+  assert.equal(after.get(worker.id)?.status, 'done');
+  assert.equal(after.get(worker.id)?.acked, true);
+});

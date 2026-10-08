@@ -21,10 +21,11 @@ import { clockWork } from './clock.js';
 import { childEnv } from './env.js';
 import { midTurn } from './lifecycle.js';
 import { restoreWorkers, saveWorkers } from './persist.js';
+import { checkStartupScreen } from './startup.js';
 import { WorkerPrs } from './pr.js';
 import { WIN, binScript, defaultShell, resolveCommand, shellRun, shq, writeOfficeCommands } from './process.js';
 import { CARRY_ON_PROMPT, WorkerTasks } from './tasks.js';
-import { flushScreens, fullScreens, newTerm, offlineBanner, screenText, type HeadlessTerminal } from './terminal.js';
+import { flushScreens, fullScreens, newTerm, offlineBanner, type HeadlessTerminal } from './terminal.js';
 import type { HookEnv, OpenedPr, RepoSource, RunAs, Worker, WorkerContext, WorkerEvents, WorkerHandle } from './types.js';
 import { clamp, safeEq, truncate } from './util.js';
 import { COLORS, NAMES, newWorker } from './worker.js';
@@ -832,6 +833,8 @@ export class WorkerManager {
     // blocked on a human: folder trust dialog, login, first-run onboarding. Flag it so it jumps.
     setTimeout(() => {
       if (info.status !== 'starting' || w.pty !== proc) return;
+      this.checkBlocked(w);
+      if (info.status !== 'starting') return;
       if (adapter?.bootHint) {
         w.bootBlocked = true;
         info.activity = adapter.bootHint;
@@ -993,28 +996,8 @@ export class WorkerManager {
     return fullScreens(this.workers.values());
   }
 
-  /**
-   * An agent can sit at its prompt without being usable: Claude stuck on a first-run screen, or not
-   * signed in on this machine (see ProviderAdapter.screen). Flag that as needing a human, and clear
-   * it once the screen moves on.
-   */
   private checkBlocked(w: Worker) {
-    const blockedBy = w.info.kind === 'agent' ? providerAdapter(w.info.provider)?.screen?.blocked : undefined;
-    if (!w.term || !blockedBy) return;
-    const s = w.info.status;
-    if (s !== 'starting' && s !== 'idle' && !(w.bootBlocked && s === 'needs_input')) return;
-    // Only this run's output counts: a "Not logged in" in the scrollback from before is old news.
-    const text = screenText(w.term, w.term.buffer.active.type === 'normal' ? Math.max(0, w.fresh?.line ?? 0) : 0);
-    const blocked = blockedBy(text, s === 'starting' || !!w.bootBlocked);
-    if (blocked && s !== 'needs_input') {
-      w.bootBlocked = true;
-      w.info.activity = blocked;
-      this.setStatus(w, 'needs_input');
-    } else if (!blocked && w.bootBlocked && s === 'needs_input') {
-      w.bootBlocked = false;
-      w.info.activity = undefined;
-      this.setStatus(w, 'idle');
-    }
+    checkStartupScreen(w, (status) => this.setStatus(w, status));
   }
 
   private saveScrollback(w: Worker) {

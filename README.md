@@ -393,6 +393,8 @@ npm run typecheck
 npm test
 ```
 
+Restarting preserves cleared completion alerts for surviving terminals. Resumed Codex sessions also recognize their ready prompt if a startup hook is delayed or missing, so a usable terminal does not raise a setup alert. Actual questions, login and permission prompts still need attention.
+
 Server edits restart the server, not the workers. After changing `ptyhost.ts`, bump `PTY_PROTOCOL` in `ptys.ts` so the next server replaces the PTY host.
 
 [docs/code-layout.md](docs/code-layout.md) says where the code lives, and where a new feature's pieces go.
