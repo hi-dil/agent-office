@@ -1,3 +1,5 @@
+import type { DiskUsage } from '../../../shared/disk';
+import { drawDisk } from './disk';
 import * as THREE from 'three';
 import type { MachineState } from '../../../shared/protocol';
 import { officeFull } from '../../../shared/machine';
@@ -36,8 +38,8 @@ export class MachineTexture {
     this.texture.anisotropy = 8;
   }
 
-  render(s: MachineState) {
-    const key = JSON.stringify(s);
+  render(s: MachineState, disk?: DiskUsage | null) {
+    const key = JSON.stringify([s, disk === undefined ? 'loading' : disk]);
     if (key === this.drawn) return;
     this.drawn = key;
     const g = this.ctx;
@@ -67,8 +69,10 @@ export class MachineTexture {
     this.panel(30, 100, 415, 'CPU', s.cpu, s.cores ? `${s.cores} core${s.cores === 1 ? '' : 's'}` : '', s.history.map(([c]) => c));
     this.panel(475, 100, 415, 'Memory', memPct, s.memTotal ? `${fmtGb(s.memUsed)} of ${fmtGb(s.memTotal)}` : '', s.history.map(([, m]) => m));
 
+    drawDisk(g, disk);
+
     // Footer: the workers, one pip each, against the limit.
-    const y = 440;
+    const y = 475;
     g.textAlign = 'left';
     g.font = `800 32px ${FONT}`;
     g.fillStyle = '#ffffff';
@@ -92,7 +96,7 @@ export class MachineTexture {
     const g = this.ctx;
     const color = loadColor(pct);
     g.fillStyle = '#25283d';
-    roundRect(g, x, y, w, 300, 18);
+    roundRect(g, x, y, w, 240, 18);
     g.fill();
     g.textAlign = 'left';
     g.fillStyle = MUTED;
@@ -106,9 +110,9 @@ export class MachineTexture {
     g.fillText(sub, x + 20, y + 160);
     // The graph: 0-100%, the newest reading on the right.
     const gx = x + 20;
-    const gy = y + 180;
+    const gy = y + 170;
     const gw = w - 40;
-    const gh = 100;
+    const gh = 50;
     // The 90% line: past it, hiring comes with a warning.
     g.strokeStyle = '#3a3d55';
     g.lineWidth = 2;

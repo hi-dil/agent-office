@@ -395,6 +395,8 @@ npm test
 
 Restarting preserves cleared completion alerts for surviving terminals. Resumed Codex sessions also recognize their ready prompt if a startup hook is delayed or missing, so a usable terminal does not raise a setup alert. Actual questions, login and permission prompts still need attention.
 
+The **This machine** wall monitor also shows disk usage and available space for the filesystem holding the office’s data, refreshed automatically. See [Machine monitor and worker limit](docs/features.md) for details.
+
 Server edits restart the server, not the workers. After changing `ptyhost.ts`, bump `PTY_PROTOCOL` in `ptys.ts` so the next server replaces the PTY host.
 
 [docs/code-layout.md](docs/code-layout.md) says where the code lives, and where a new feature's pieces go.
