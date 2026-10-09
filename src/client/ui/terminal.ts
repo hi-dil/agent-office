@@ -118,6 +118,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   const imageBtn = h('button.btn', { type: 'button', title: 'Attach an image' }, '📎 Attach image');
   const floor = store.floor;
   let disposeImages = () => {};
+  const hideBtn = h('button.btn.term-hide', { type: 'button', title: 'Hide this terminal; the worker keeps running at its desk', 'aria-label': 'Hide terminal' }, 'Hide');
   const closeBtn = h('button.btn.close', { title: 'Close terminal (Ctrl+]) · Esc goes to the agent', 'aria-label': 'Close' }, '✕');
   const host = h('div.term-host', { 'data-drop': '📎 Drop screenshots or files here to put them in the terminal' });
   const keys = h('div.term-keys', { role: 'group', 'aria-label': 'Keys' });
@@ -140,7 +141,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   );
   host.append(mic.live);
   // The keypad has an Esc of its own, and a 🎤 on its prompt box.
-  const el = h('div.modal.term', { role: 'dialog', 'aria-label': `${info.name} terminal` }, h('header', {}, dot, title, pill, cost, viewers, typed, modelsBtn, imageBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, closeBtn), tabs.bar, host, tabs.pages, keypad);
+  const el = h('div.modal.term', { role: 'dialog', 'aria-label': `${info.name} terminal` }, h('header', {}, dot, title, pill, cost, viewers, typed, modelsBtn, imageBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, hideBtn, closeBtn), tabs.bar, host, tabs.pages, keypad);
 
   const term = new Terminal({
     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
@@ -350,6 +351,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       else pendingFind = f;
     },
   };
+  hideBtn.addEventListener('click', () => modal.close());
   closeBtn.addEventListener('click', () => modal.close());
   changesBtn.addEventListener('click', () => {
     onChanges?.();

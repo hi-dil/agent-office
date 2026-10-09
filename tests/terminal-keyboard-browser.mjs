@@ -11,7 +11,7 @@ try {
   browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
   const page = await browser.newPage();
   await page.route('**/keyboard-harness', route => route.fulfill({ contentType: 'text/html', body: `<link rel="stylesheet" href="/style.css"><div id="modal-root"></div><div id="toasts"></div><script type="module">
-  import {openTerminal,routeTerminalMessage} from '/ui/terminal.ts';import {store} from '/state.ts';import {openModal,h} from '/ui/dom.ts';
+  import {openTerminal,routeTerminalMessage} from '/ui/terminal.ts';import {store} from '/state/index.ts';import {openModal,h} from '/ui/dom.ts';
   store.floor='test';store.workers.set('worker1',{id:'worker1',kind:'shell',name:'Test terminal',color:'#abcdef',status:'idle',viewers:[],viewerIds:[],cols:80,rows:24});
   window.messages=[];const net={send:m=>window.messages.push(m)};
   window.open=()=>{openTerminal(net,'worker1');routeTerminalMessage({t:'term.snapshot',workerId:'worker1',data:'ready',cols:80,rows:24});};
@@ -20,6 +20,7 @@ try {
   await page.goto('http://127.0.0.1:5180/keyboard-harness');
   const terminal = page.getByRole('dialog', { name: 'Test terminal terminal' });
   await terminal.waitFor();
+  await page.screenshot({path:'/tmp/upstream-terminal.png'});
   await page.locator('.xterm-helper-textarea').focus();
   await page.keyboard.press('Escape');
   assert.equal(await terminal.count(), 1, 'Escape must keep the terminal open');
@@ -30,6 +31,10 @@ try {
   await page.evaluate(() => window.open());
   await page.getByRole('button', {name:'Close',exact:true}).click();
   assert.equal(await terminal.count(), 0);
+  await page.evaluate(() => window.open());
+  await page.getByRole('button', {name:'Hide terminal',exact:true}).click();
+  assert.equal(await terminal.count(), 0, 'Hide closes only the view');
+  assert.equal(await page.evaluate(() => window.messages.some(m => m.t === 'worker.stop' || m.t === 'worker.remove')), false);
   await page.evaluate(() => window.other());
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.backdrop').count(), 0, 'Escape still closes other dialogs');

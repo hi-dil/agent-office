@@ -379,7 +379,7 @@ deploy/coolify.sh ssh 'node /opt/agent-office/bin/agent-office.js accounts invit
 | Ctrl + Space | Dictate into a terminal or a prompt box: hold it and talk (or hold the **🎤**) |
 | Tab | The ☰ menu: every window |
 | Esc | Send Escape to the terminal; close other windows |
-| Ctrl + ] | Close the terminal |
+| Ctrl + ] | Hide the terminal; the worker keeps running |
 | Ctrl + [ | Send Esc to a terminal, to close a menu like Claude's `/skills` or interrupt Claude (or **⎋ Esc** in its header) |
 
 The full list is in [docs/controls.md](docs/controls.md).
