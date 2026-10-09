@@ -3,6 +3,7 @@ import './terminal.css';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
+import { openTerminalLink } from './terminal-links.js';
 import type { Net } from '../net';
 import { store } from '../state';
 import { TERM_THEME } from './termtheme';
@@ -156,7 +157,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
-  term.loadAddon(new WebLinksAddon());
+  term.loadAddon(new WebLinksAddon(openTerminalLink));
 
   let ready = false;
   let lastSentSize = '';

@@ -38,6 +38,8 @@ On a phone, use the 2D view at `/lite` instead: a terminal there has a row of ke
 
 ## In a terminal
 
+Terminal URLs open through normal browser links, with Cmd/Ctrl/Shift-click modifiers preserved. Your browser decides whether to use a tab or a window; installed app windows may open links in a separate browser window.
+
 The prompt edits the way it does in your own terminal (iTerm2's *Natural Text Editing*, or VS Code's), in Claude Code, Codex, OpenCode and a shell alike:
 
 | Key | Action |
