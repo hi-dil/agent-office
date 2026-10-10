@@ -182,14 +182,13 @@ function workerCard(w: WorkerInfo): HTMLElement {
   );
 }
 
-/** A worker needs input or is done: a notification while you're elsewhere, and a buzz. */
+/** Finished workers can notify while you're elsewhere; waiting workers stay quiet. */
 function noticeWorkers() {
   for (const w of store.workers.values()) {
     const before = lastStatus.get(w.id);
     lastStatus.set(w.id, w.status);
     if (before === undefined || before === w.status || !waitingOnSomeone(w)) continue;
     notifier.alert(w);
-    if (w.status === 'needs_input') navigator.vibrate?.(200);
   }
   notifier.sync(store.workers);
 }
@@ -352,7 +351,7 @@ onDoingChange(() => sendDoing());
 
 // ---- Notifications ------------------------------------------------------------------------------
 // The browser only asks from a tap, so there's a button for it while it hasn't been asked.
-const bell = h('button.btn', { type: 'button', title: 'Get a notification when a worker needs input or is done', 'aria-label': 'Turn on notifications' }, '🔔');
+const bell = h('button.btn', { type: 'button', title: 'Get a notification when a worker is done', 'aria-label': 'Turn on notifications' }, '🔔');
 bell.addEventListener('click', async () => {
   await askNotifyPermission();
   bell.remove();

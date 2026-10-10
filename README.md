@@ -36,7 +36,7 @@ curl -fsSL https://raw.githubusercontent.com/AgentSystemLabs/agent-office/main/i
 - **Workers at desks.** Walk up to an empty desk, press **E**, and pick Claude Code, Codex, OpenCode, Grok, Muse, DeepSeek Harness, Pi or Cursor, each with its model and reasoning effort. The agent's live terminal shows on its laptop, and anyone can open it and type.
 - **Terminal links.** Terminal URLs open through normal browser links, with Cmd/Ctrl/Shift-click modifiers preserved. Your browser decides whether to use a tab or a window; installed app windows may open links in a separate browser window.
 - **Talk instead of typing.** Hold **Ctrl+Space** (or the **🎤**) in a worker's terminal or a prompt box and say what you want: it's typed in for you to send. Your browser does the listening, so there's nothing to install.
-- **You can't miss who needs you.** A worker that stops to ask you something lights a red beacon over its desk, puts a banner on your screen saying who and what for, and sounds an alarm. One that has finished jumps up and down and dings. Press **N** to go straight to whoever is waiting.
+- **Waiting workers without attention alerts.** Workers waiting on input keep their actual status and question in the **🤖 Workers** panel. Needs you banners, screen flashes, desk beacons, alarms, desktop notifications and phone vibration are disabled for every worker. Finished-worker notifications remain available. Press **N** to go straight to whoever is waiting.
 - **From your phone, too.** `/lite` is the office in 2D: every worker and what it's waiting on, its terminal with the keys a phone keyboard lacks, and the boards. The 3D office offers it on a phone or a slow computer.
 - **GitHub on the walls.** Issues and pull requests hang on cork boards. Hand an issue to a worker, queue tasks, give a worker its own git worktree and open its PR with one key (if one gets deleted behind the office's back, the worker waits at its desk until you rebuild it). One task can span several projects: the worker gets a worktree of each, and a PR in each that links the others.
 - **Agents that manage agents.** Every worker can list, hire, message and send home the others, through an `agent-office` MCP server (Claude Code, Codex, OpenCode) or the `office-workers` command. Ask one to "send everyone whose PR merged home" and it does, deleting their worktrees and branches unless they hold unpushed work. A worker that opens its pull request itself (`gh pr create`) shows it at its desk, and one the office missed can be told which is its own (`office-workers pr`).
@@ -393,6 +393,10 @@ npm run dev          # Vite with hot reload on :5173, the server on :4600 (passw
 npm run typecheck
 npm test
 ```
+
+To verify quiet Needs you alerts and preserved worker statuses in a headless browser, run
+`CHROME_PATH=/path/to/chrome node tests/needsyou-browser.mjs`. The fixture saves
+`/tmp/agent-office-no-needs-you.png` and never contacts a real worker.
 
 Restarting preserves cleared completion alerts for surviving terminals. Resumed Codex sessions also recognize their ready prompt if a startup hook is delayed or missing, so a usable terminal does not raise a setup alert. Actual questions, login and permission prompts still need attention.
 

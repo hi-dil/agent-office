@@ -1,5 +1,5 @@
 // Getting your attention when the office isn't the tab you're looking at: desktop notifications
-// for workers that need input or finish (the tab title counts them too, see main.ts).
+// for workers that finish (the tab title still counts workers waiting on someone).
 
 import type { WorkerInfo } from '../shared/protocol';
 import { alertDetail } from '../shared/status';
@@ -41,15 +41,15 @@ export class DesktopNotifier {
     window.addEventListener('focus', () => this.closeAll());
   }
 
-  /** A worker just started waiting on input, or finished its turn. */
+  /** Finished workers can notify; workers waiting on input stay quiet. */
   alert(w: WorkerInfo & { status: 'needs_input' | 'done' }) {
+    if (w.status === 'needs_input') return;
     if (!this.enabled() || notifyPermission() !== 'granted') return;
     if (!document.hidden && document.hasFocus()) return;
-    const title = w.status === 'done' ? `✅ ${w.name} is done` : `🙋 ${w.name} needs you`;
+    const title = `✅ ${w.name} is done`;
     const body = [w.task?.name, alertDetail(w)].filter(Boolean).join('\n');
     this.shown.get(w.id)?.close();
-    // Needs input blocks the worker, so that one stays up until you deal with it.
-    const n = this.show(title, { body, tag: `worker-${w.id}`, requireInteraction: w.status === 'needs_input' });
+    const n = this.show(title, { body, tag: `worker-${w.id}` });
     if (!n) return;
     n.onclick = () => {
       window.focus();
@@ -66,7 +66,7 @@ export class DesktopNotifier {
   sync(workers: Map<string, WorkerInfo>) {
     for (const [id, n] of this.shown) {
       const w = workers.get(id);
-      if (w && waitingOnSomeone(w)) continue;
+      if (w?.status === 'done' && !w.acked) continue;
       n.close();
       this.shown.delete(id);
     }
@@ -74,7 +74,7 @@ export class DesktopNotifier {
 
   /** What one looks like, from ⚙️ Settings. */
   sample() {
-    const n = this.show('🔔 Notifications are on', { body: 'This is how a worker that needs you or is done gets your attention while you are in another tab. Click one to go straight to that worker.' });
+    const n = this.show('🔔 Notifications are on', { body: 'This is how a finished worker gets your attention while you are in another tab. Click one to go straight to that worker.' });
     if (!n) return;
     n.onclick = () => {
       window.focus();
