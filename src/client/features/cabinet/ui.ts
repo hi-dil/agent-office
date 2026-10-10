@@ -365,7 +365,7 @@ export class Cabinet {
         player: store.profile.name,
         scores: c.scores,
         mine: g.id,
-        note: this.waiting ? `${this.waiting.name} needs you${deskOf(this.waiting)}` : 'P to carry on',
+        note: this.waiting ? `${this.waiting.name} is waiting${deskOf(this.waiting)}` : 'P to carry on',
         prompt: rank ? `🏆 #${rank} on the table! Enter: again` : 'Enter to play again',
         t,
       };

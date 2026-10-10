@@ -39,7 +39,7 @@ export function installWaiting(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'wo
     }
     const waiting = waitingInOrder(store.workers.values());
     const of = waiting.length > 1 ? ` (${waiting.findIndex((x) => x.id === w.id) + 1} of ${waiting.length})` : '';
-    nextToast = toast(`${w.status === 'needs_input' ? `🙋 ${w.name} needs you` : `✅ ${w.name} is done`}${of}. E opens its terminal`);
+    nextToast = toast(`${w.status === 'needs_input' ? `🙋 ${w.name} is waiting` : `✅ ${w.name} is done`}${of}. E opens its terminal`);
   }
 
   /** Puts you behind worker `id`, looking over its shoulder, with any window closed. False when there's no getting there (you're between floors, or it's gone). */

@@ -162,7 +162,7 @@ export const STATUS_LABEL: Record<string, string> = {
   starting: 'starting',
   idle: 'ready',
   working: 'working',
-  needs_input: 'needs input',
+  needs_input: 'waiting',
   done: 'done',
   exited: 'exited',
   offline: 'asleep',

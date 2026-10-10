@@ -112,7 +112,7 @@ export function installHud(ctx: Ctx, core: CoreState, parts: HudParts) {
       {
         id: 'waiting',
         icon: () => (waitingNow().some((w) => w.status === 'needs_input') ? '🙋' : '✅'),
-        label: 'Next worker that needs you',
+        label: 'Next waiting worker',
         section: 'Open',
         key: 'N',
         shown: () => waitingNow().length > 0,
@@ -120,7 +120,7 @@ export function installHud(ctx: Ctx, core: CoreState, parts: HudParts) {
         chip: () => waitingLabel(waitingNow()).replace(/^(🙋|✅) /, ''),
         on: () => waitingNow().every((w) => w.status === 'done'),
         tone: () => (waitingNow().some((w) => w.status === 'needs_input') ? 'danger' : undefined),
-        title: () => 'Go to the next worker waiting on someone: the ones that need you first (N)',
+        title: () => 'Go to the next worker waiting on someone: the ones waiting for input first (N)',
         run: waiting.goToNextWaiting,
       },
     ],

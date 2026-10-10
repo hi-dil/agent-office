@@ -83,7 +83,7 @@ export const CASTLE: MapConfig = {
   id: 'castle',
   name: 'Castle',
   icon: '🏰',
-  description: 'A great hall with a throne of iron blades. Workers sit at the long tables, line up before your throne when they’re done or need you, and grow long grey beards the longer they work. Speak to the Hand of the King to send out a new one; send one home, and the Kingsguard drags it down to the dungeon to rot.',
+  description: 'A great hall with a throne of iron blades. Workers sit at the long tables, line up before your throne when they’re done or waiting for input, and grow long grey beards the longer they work. Speak to the Hand of the King to send out a new one; send one home, and the Kingsguard drags it down to the dungeon to rot.',
   style: 'castle',
   hall: { width: W, length: L, height: 13 },
   spawn: { x: -2.6, z: -21, rotY: Math.PI },

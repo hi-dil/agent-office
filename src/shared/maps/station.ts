@@ -4,7 +4,7 @@ import type { MapConfig, PropConfig } from './types.js';
  * The space station: a long pressurised deck in orbit, the Earth rolling by outside its windows. At
  * the forward end is the bridge, a raised deck under a wall of glass with the captain's chair on it,
  * where you sit; the workers sit at the benches down both sides, and line up before the chair when
- * they're done or need you. The First Officer stands at your left and brings a new worker aboard
+ * they're done or waiting for input. The First Officer stands at your left and brings a new worker aboard
  * when you speak to them. The boards are displays on the side walls, a board agent at a console
  * under each. Aft is the hatch workers come in through, and in the starboard wall, between two big
  * observation windows, the airlock: a worker sent home is marched to it by Security and blown out
@@ -67,7 +67,7 @@ export const STATION: MapConfig = {
   name: 'Space station',
   icon: '🚀',
   description:
-    'A space station in orbit, the Earth rolling by outside its windows. Workers sit at the benches down either side and line up before your captain’s chair on the bridge when they’re done or need you. Speak to the First Officer to bring a new one aboard; send one home, and Security marches it to the airlock and blows it out into space, where everyone ever ejected is still adrift.',
+    'A space station in orbit, the Earth rolling by outside its windows. Workers sit at the benches down either side and line up before your captain’s chair on the bridge when they’re done or waiting for input. Speak to the First Officer to bring a new one aboard; send one home, and Security marches it to the airlock and blows it out into space, where everyone ever ejected is still adrift.',
   style: 'station',
   hall: { width: W, length: L, height: H },
   spawn: { x: -2.6, z: -17.5, rotY: Math.PI },

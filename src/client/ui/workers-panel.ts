@@ -1,5 +1,5 @@
 // The workers list in the sidebar: every worker on your floor, what it's on, and what it has spent.
-// One that needs you goes to the top, in red, saying what it's asking and for how long.
+// One waiting for input goes to the top, in red, saying what it's asking and for how long.
 
 import { needyFirst } from '../nextup';
 import { store } from '../state';
@@ -26,11 +26,11 @@ export function renderWorkers(onOpen: (id: string) => void) {
     ul.append(
       h(
         'li',
-        { class: asking ? 'needs-you-row' : '', onclick: () => onOpen(w.id), title: asking ? `${w.name} needs you: open its terminal to answer` : `Open ${w.name}'s terminal` },
+        { class: asking ? 'needs-you-row' : '', onclick: () => onOpen(w.id), title: asking ? `${w.name} is waiting: open its terminal to answer` : `Open ${w.name}'s terminal` },
         h('span.dot', { style: `background:${w.color}` }),
         h('span.name', {}, w.name, sub ? h('span.sub', {}, sub) : null,
           usageState === 'tracked' && w.usage ? h('span.cost', { title: usageTitle(w.usage, providerKind) }, usageLabel(w.usage, providerKind)) : null),
-        w.lost ? h('span.pill.lost', { title: 'Its worktree was deleted outside agent-office: open it to fix it' }, 'worktree deleted') : h('span.pill', { class: w.status }, asking ? 'NEEDS YOU' : (STATUS_LABEL[w.status] ?? w.status)),
+        w.lost ? h('span.pill.lost', { title: 'Its worktree was deleted outside agent-office: open it to fix it' }, 'worktree deleted') : h('span.pill', { class: w.status }, asking ? 'WAITING' : (STATUS_LABEL[w.status] ?? w.status)),
         ask,
       ),
     );

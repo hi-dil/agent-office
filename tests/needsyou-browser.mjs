@@ -2,6 +2,10 @@
 import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const officeHtml = await readFile(new URL('../src/client/index.html', import.meta.url), 'utf8');
+const waitingButton = officeHtml.match(/<button id="waiting"[^>]*><\/button>/)[0];
 
 const port = 5184;
 const vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'ignore' });
@@ -22,16 +26,34 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/needsyou-harness', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html>
     <link rel="stylesheet" href="/style.css">
-    <div id="hud"><aside class="side"><section id="workers-panel" class="panel workers"><h3>Workers <span id="worker-count"></span></h3><ul id="workers"></ul></section></aside></div>
-    <div id="modal-root"></div><div id="toasts"></div>
+    <div id="hud"><aside class="side"><section id="workers-panel" class="panel workers"><h3>Workers <span id="worker-count"></span></h3>${waitingButton}<ul id="workers"></ul></section></aside></div>
+    <div id="badge-preview" style="position:absolute;left:24px;top:40px;width:340px;display:grid;gap:20px"></div><div id="modal-root"></div><div id="toasts"></div>
     <script type="module">
       import * as THREE from '/@fs/${process.cwd()}/node_modules/three/build/three.module.js';
       import { installNeedsYou } from '/features/needsyou/index.ts';
       import { renderWorkers } from '/ui/workers-panel.ts';
+      import { bubbleFor } from '/world/character/worker-badges.ts';
+      import { waitingLabel } from '/nextup.ts';
       import { DesktopNotifier } from '/notify.ts';
       import { openSettings } from '/ui/settings.ts';
       import { loadSettings, store } from '/state/index.ts';
       window.alerts = []; window.notifications = []; window.opened = [];
+      window.badgeText = [];
+      const fillText = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function(text, ...args) {
+        window.badgeText.push(text); return fillText.call(this, text, ...args);
+      };
+      window.drawWaitingBadges = () => {
+        for (const task of [undefined, { name: 'Test changes', summary: 'Waiting for permission' }]) {
+          const sprite = bubbleFor('needs_input', false, task, undefined, false).draw();
+          const canvas = sprite.material.map.image;
+          canvas.style.width = '100%'; canvas.style.height = 'auto';
+          document.getElementById('badge-preview').append(canvas);
+          sprite.material.map.dispose(); sprite.material.dispose();
+        }
+        return window.badgeText;
+      };
+      window.waitingCount = () => waitingLabel([...store.workers.values()]);
       window.Notification = class {
         static permission = 'granted';
         constructor(title) { window.notifications.push(title); }
@@ -75,6 +97,14 @@ try {
   assert.deepEqual(await page.evaluate(() => window.alerts), [], 'No Needs you alarm');
   assert.deepEqual(await page.evaluate(() => window.notifications), [], 'No Needs you desktop notifications');
   assert.equal(await page.locator('#workers .pill.needs_input').count(), 2, 'Waiting statuses remain accurate');
+  assert.deepEqual(await page.locator('#workers .pill.needs_input').allTextContents(), ['WAITING', 'WAITING']);
+  assert.ok(!(await page.locator('#workers').innerText()).toLowerCase().includes('needs you'));
+  assert.ok(!(await page.locator('#workers li').first().getAttribute('title')).includes('needs you'));
+  assert.equal(await page.evaluate(() => window.waitingCount()), '🙋 2 waiting');
+  assert.ok(!/needs? you/i.test(await page.locator('#waiting').getAttribute('title')), 'Production waiting button uses neutral wording');
+  const badgeText = await page.evaluate(() => window.drawWaitingBadges());
+  assert.equal(badgeText.filter(text => text === '🙋 WAITING').length, 2, 'Bubble and task card both say Waiting');
+  assert.ok(!badgeText.some(text => /needs? you/i.test(text)), 'Badges must not say Needs you');
   await page.locator('#workers li').first().click();
   assert.deepEqual(await page.evaluate(() => window.opened), ['Byte'], 'Workers remain accessible');
   await page.clock.fastForward(60_001);
@@ -93,7 +123,7 @@ try {
   assert.equal(await page.getByRole('heading', { name: 'When a worker needs you', exact: true }).count(), 0, 'Removed alarms have no Settings control');
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   assert.deepEqual(errors, []);
-  console.log('Needs you alerts hidden for multiple workers and floor changes; statuses, worker access and done notifications preserved.');
+  console.log('Waiting labels verified on bubbles, task cards, status pills and counts; alerts hidden and worker access and done notifications preserved.');
 } finally {
   await browser?.close();
   vite.kill('SIGTERM');

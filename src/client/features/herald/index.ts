@@ -43,7 +43,7 @@ export function installHerald(ctx: Ctx, parts: Pick<Parts, 'place' | 'you' | 'ac
     if (!actions.firstFreeSeat()) return toast(`${h.name}: every seat at the tables is taken — send someone home first`, 'warn');
     openPrompt({
       title: `${plan().icon} ${h.name}: send out a worker`,
-      subtitle: `Say what it’s to do. A new worker runs off to a free seat and gets started${plan().lineup.length ? `, and comes back to line up${plan().throne ? ' before your throne' : ''} once it’s done or needs you` : ''}.`,
+      subtitle: `Say what it’s to do. A new worker runs off to a free seat and gets started${plan().lineup.length ? `, and comes back to line up${plan().throne ? ' before your throne' : ''} once it’s done or waiting for input` : ''}.`,
       warning: pressureNote(store.machine),
       placeholder: h.ask,
       submitLabel: h.button,
