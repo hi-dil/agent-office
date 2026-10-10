@@ -50,3 +50,20 @@ The prompt edits the way it does in your own terminal (iTerm2's *Natural Text Ed
 | ⌘ + ⌫ | Delete to the start of the line (Mac) |
 | ⌘ + ⌦ | Delete to the end of the line (Mac) |
 | ⌘ + ← / → | Jump to the start / end of the line (Mac) |
+
+## From SSH or your own terminal
+
+For a plain project shell in the office, press **B** at an empty desk. Shells and agent terminals can also be accessed from a terminal on the office machine:
+
+```bash
+agent-office terminals
+agent-office attach <worker-id>
+```
+
+In a source checkout, use `node bin/agent-office.js terminals` and `node bin/agent-office.js attach <worker-id>` after building. SSH into the host first (`ssh ozt@macmini-one` for this installation); allocate a terminal with `ssh -t` when running an attach command directly.
+
+`terminals` lists every project's agents and shells without waking workers or clearing alerts. Use `--floor <project-name-or-id>` to filter, or `--json` for scripts. `attach` takes a worker ID or a unique worker name and opens the **same live session** as the browser. It does not launch another Codex/Claude conversation or resume a stopped worker.
+
+The command asks for the office password without echoing it. Use `--name <account>` for an account password, or `AGENT_OFFICE_PASSWORD` for automation. Credentials are not stored. For another host, supply `--url https://your-office-address` (or `AGENT_OFFICE_URL`); the default is `http://127.0.0.1:4600`. Use HTTPS when connecting remotely, or SSH in and use localhost.
+
+**Ctrl+]** detaches and leaves the worker running. **Ctrl+C** goes to the worker, just as it does in the browser. Typing and resizing affect the shared terminal, so coordinate with anyone else using it. A dropped connection restores your local terminal; run `attach` again to reconnect. The office server must be running and updated to a version with `/api/terminals` support.

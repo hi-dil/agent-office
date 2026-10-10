@@ -6,6 +6,10 @@ import { tildify } from './building.js';
 import { openBrowser } from './browser.js';
 
 const argv = process.argv.slice(2);
+if (argv[0] === 'terminals' || argv[0] === 'attach') {
+  const { terminalCommand } = await import('./terminal-cli/index.js');
+  process.exit(await terminalCommand(argv));
+}
 if (argv[0] === 'prune') {
   const { prune } = await import('./prune.js');
   process.exit(await prune(argv.slice(1)));
