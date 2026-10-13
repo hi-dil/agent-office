@@ -78,7 +78,7 @@ The first time it starts, it walks you through setting up, right in the terminal
 
 Press Enter to skip a step: the elevator in the office asks for your first project too. Then the office opens in your browser, **already signed in**, with a link that works once. The terminal also prints the office password, for signing in from another browser (it's saved in `~/agent-office/.agent-office/config.json`).
 
-Walk to an empty desk, press **E** and hire a worker.
+Walk to an empty desk, press **E** and hire a worker. Shell and agent terminals use bundled **JetBrains Mono Nerd Font**, including prompt icons, in both the 3D office and `/lite`. It works from other devices without installing the font.
 
 Common options:
 

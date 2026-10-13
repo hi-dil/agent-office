@@ -1,4 +1,5 @@
 import { bindTerminalImages } from './terminal-images';
+import { bindTerminalFont, TERMINAL_FALLBACK_FONT } from './terminal-font';
 import './terminal.css';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -145,7 +146,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   const el = h('div.modal.term', { role: 'dialog', 'aria-label': `${info.name} terminal` }, h('header', {}, dot, title, pill, cost, viewers, typed, modelsBtn, imageBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, hideBtn, closeBtn), tabs.bar, host, tabs.pages, keypad);
 
   const term = new Terminal({
-    fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+    fontFamily: TERMINAL_FALLBACK_FONT,
     // A few more columns on a phone's narrow screen.
     fontSize: opts.keypad ? 12 : 14,
     lineHeight: 1.1,
@@ -340,6 +341,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       mic.drop();
       net.send({ t: 'worker.detach', workerId });
       disposeImages();
+      disposeFont();
       term.dispose();
       if (current?.modal === modal) current = null;
     },
@@ -360,6 +362,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   });
 
   term.open(host);
+  const disposeFont = bindTerminalFont(term, () => sendSize());
   disposeImages = bindTerminalImages(host, imageBtn, {
     floor: floor ?? '', worker: workerId,
     active: () => ready && current?.workerId === workerId && store.floor === floor && !isAsleep(store.workers.get(workerId)?.status ?? 'offline'),
