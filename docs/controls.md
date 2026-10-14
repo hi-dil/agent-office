@@ -34,7 +34,7 @@ Back to the [README](../README.md).
 
 You can also click a nearby desk to interact with it, or click a worker in the Workers panel (**🤖 Workers**, top right) to open its terminal.
 
-On a phone, use the 2D view at `/lite` instead: a terminal there has a row of keys under it (**1** **2** **3**, the arrows, Enter, Tab, Esc, Ctrl+C) and a box to send a prompt. See [Features](features.md).
+On a phone, use the 2D view at `/lite` instead: a terminal there has a row of keys under it (**1** **2** **3**, the arrows, Enter, Tab, Esc, Ctrl+C) and a box to send a prompt. Swipe down inside the terminal to read earlier output, or swipe up to return toward the latest output. Swipes also scroll full-screen tools that support mouse-wheel input; scrolling leaves the phone keyboard closed, while tapping still lets you type. Touch scrolling works in the 3D office’s terminals too. See [Features](features.md).
 
 ## In a terminal
 

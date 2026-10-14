@@ -1,4 +1,5 @@
 import { bindTerminalImages } from './terminal-images';
+import { bindTerminalTouch } from './terminal-touch';
 import './terminal.css';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -119,6 +120,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   const imageBtn = h('button.btn', { type: 'button', title: 'Attach an image' }, '📎 Attach image');
   const floor = store.floor;
   let disposeImages = () => {};
+  let disposeTouch = () => {};
   const hideBtn = h('button.btn.term-hide', { type: 'button', title: 'Hide this terminal; the worker keeps running at its desk', 'aria-label': 'Hide terminal' }, 'Hide');
   const closeBtn = h('button.btn.close', { title: 'Close terminal (Ctrl+]) · Esc goes to the agent', 'aria-label': 'Close' }, '✕');
   const host = h('div.term-host', { 'data-drop': '📎 Drop screenshots or files here to put them in the terminal' });
@@ -340,6 +342,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       mic.drop();
       net.send({ t: 'worker.detach', workerId });
       disposeImages();
+      disposeTouch();
       term.dispose();
       if (current?.modal === modal) current = null;
     },
@@ -360,6 +363,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   });
 
   term.open(host);
+  disposeTouch = bindTerminalTouch(term);
   disposeImages = bindTerminalImages(host, imageBtn, {
     floor: floor ?? '', worker: workerId,
     active: () => ready && current?.workerId === workerId && store.floor === floor && !isAsleep(store.workers.get(workerId)?.status ?? 'offline'),
