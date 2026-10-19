@@ -40,6 +40,10 @@ On a phone, use the 2D view at `/lite` instead: a terminal there has a row of ke
 
 Terminal URLs open through normal browser links, with Cmd/Ctrl/Shift-click modifiers preserved. Your browser decides whether to use a tab or a window; installed app windows may open links in a separate browser window.
 
+Paste files into the terminal with Cmd+V / Ctrl+V or the browser’s Paste action, or choose **📎 Attach files** for one or more files of any type (25 MB per file). Drag-and-drop still works. File paths are escaped and inserted without pressing Enter; add instructions before sending. Plain text paste works as before.
+
+In `/lite`, pasting files into the reply box or choosing **Attach files** keeps the paths in your draft until you tap **Send**. If your phone does not offer file paste, use **Attach files** to open its file picker. Files stay on the office machine in the worker’s private drop folder and are removed when that worker is removed.
+
 The prompt edits the way it does in your own terminal (iTerm2's *Natural Text Editing*, or VS Code's), in Claude Code, Codex, OpenCode and a shell alike:
 
 | Key | Action |

@@ -80,7 +80,7 @@ Everything in the office, room by room. Back to the [README](../README.md).
 - **Lazygit:** use the office wall board or menu to open a shared Git terminal for the floor. The board shows changed files and cached upstream ahead/behind counts.
 - **Weekly limits:** the office board shows Codex and Claude usage windows and reset times when available. Claude uses the signed-in account’s plan; Codex uses the server’s CLI sign-in.
 - **Services:** discover Docker Compose published web ports and host Vite servers for the floor’s checkout, including servers started outside an agent.
-- **Terminal images:** paste an image or use Attach image to upload it and insert its path into the prompt. Escape goes to the agent; Ctrl+] closes the terminal.
+- **Terminal files:** paste files or use **Attach files** to upload documents and images (up to 25 MB each) and insert their paths without submitting. In the mobile reply box, attachments stay in the draft until you tap **Send**. Escape goes to the agent; Ctrl+] closes the terminal.
 
 ### Asana on the Issues board
 
