@@ -38,6 +38,8 @@ On a phone, use the 2D view at `/lite` instead: a terminal there has a row of ke
 
 ## In a terminal
 
+To copy shell, Claude Code, Codex or other CLI output, drag across the text and click **Copy** in the terminal header, or press **⌘C** on Mac / **Ctrl+Shift+C** on Windows and Linux. If the CLI captures the mouse, hold **Option** while dragging on Mac, or **Shift** on Windows and Linux. **Ctrl+C** copies when text is selected; without a selection it still interrupts the running program. The Copy button is enabled once text is selected.
+
 Terminal URLs open through normal browser links, with Cmd/Ctrl/Shift-click modifiers preserved. Your browser decides whether to use a tab or a window; installed app windows may open links in a separate browser window.
 
 Paste files into the terminal with Cmd+V / Ctrl+V or the browser’s Paste action, or choose **📎 Attach files** for one or more files of any type (25 MB per file). Drag-and-drop still works. File paths are escaped and inserted without pressing Enter; add instructions before sending. Plain text paste works as before.

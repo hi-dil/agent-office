@@ -1,3 +1,4 @@
+import { bindTerminalCopy } from './terminal-copy';
 import { bindTerminalFiles } from './terminal-files';
 import { bindTerminalTouch } from './terminal-touch';
 import './terminal.css';
@@ -109,6 +110,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   const floor = store.floor;
   let disposeFiles = () => {};
   let disposeTouch = () => {};
+  let disposeCopy = () => {};
   const hideBtn = h('button.btn.term-hide', { type: 'button', title: 'Hide this terminal; the worker keeps running at its desk', 'aria-label': 'Hide terminal' }, 'Hide');
   const closeBtn = h('button.btn.close', { title: 'Close terminal (Ctrl+]) · Esc goes to the agent', 'aria-label': 'Close' }, '✕');
   const host = h('div.term-host', { 'data-drop': '📎 Drop screenshots or files here to put them in the terminal' });
@@ -331,6 +333,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       net.send({ t: 'worker.detach', workerId });
       disposeFiles();
       disposeTouch();
+      disposeCopy();
       term.dispose();
       if (current?.modal === modal) current = null;
     },
@@ -351,6 +354,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   });
 
   term.open(host);
+  disposeCopy = bindTerminalCopy(term, filesBtn);
   disposeTouch = bindTerminalTouch(term);
   disposeFiles = bindTerminalFiles(host, filesBtn, {
     floor: floor ?? '', worker: workerId, modal: el, backdrop: modal.backdrop, prompt: opts.keypad ? say : undefined,
