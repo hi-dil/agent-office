@@ -62,6 +62,16 @@ try {
       assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'COPY_THIS');
       assert.equal(await input(), '', 'Cmd+C must not reach the CLI');
     }
+    // A CLI's own copy (OSC 52) reaches the browser clipboard, but only right after this viewer used the terminal.
+    const osc52 = text => page.evaluate(text => window.output(`\x1b]52;c;${btoa(String.fromCharCode(...new TextEncoder().encode(text)))}\x07`), text);
+    await page.evaluate(() => navigator.clipboard.writeText('sentinel'));
+    await page.evaluate(() => { const now = Date.now; Date.now = () => now() + 10_000; window.restoreNow = () => { Date.now = now; }; });
+    await osc52('stale copy');
+    await page.evaluate(() => window.restoreNow());
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'sentinel', 'OSC 52 without recent input is ignored');
+    await page.keyboard.press('Control+c');
+    await osc52('copied by the CLI ✓');
+    await page.waitForFunction(async () => await navigator.clipboard.readText() === 'copied by the CLI ✓');
     await page.evaluate(() => navigator.clipboard.writeText('sentinel'));
     // A denied Clipboard API falls back to native browser copy, keeping terminal focus.
     await page.evaluate(() => {

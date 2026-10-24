@@ -15,8 +15,7 @@ export function bindTerminalCopy(term: Terminal, before: HTMLElement): () => voi
   const selection = term.onSelectionChange(update);
   update();
 
-  const copy = async () => {
-    const text = term.getSelection();
+  const copy = async (text = term.getSelection()) => {
     if (!text) return;
     let copied = false;
     try {
@@ -38,6 +37,20 @@ export function bindTerminalCopy(term: Terminal, before: HTMLElement): () => voi
     }
     if (!signal.aborted) toast(copied ? 'Copied selection' : 'Could not copy. Try the browser’s Copy action.', copied ? undefined : 'warn');
   };
+  // CLIs that copy their own selection (Claude Code) send OSC 52; the server's clipboard is useless to a remote browser.
+  // Only honour it right after this viewer used the terminal, so other spectators' clipboards are left alone.
+  let lastInput = 0;
+  const touched = () => { lastInput = Date.now(); };
+  for (const type of ['pointerup', 'keydown'] as const) term.element?.addEventListener(type, touched, { capture: true, signal });
+  const osc52 = term.parser.registerOscHandler(52, data => {
+    const payload = data.slice(data.indexOf(';') + 1);
+    if (payload === '?' || Date.now() - lastInput > 3000) return true;
+    try {
+      const bytes = Uint8Array.from(atob(payload), c => c.charCodeAt(0));
+      void copy(new TextDecoder().decode(bytes));
+    } catch { /* Ignore malformed clipboard requests. */ }
+    return true;
+  });
   button.addEventListener('pointerdown', event => event.preventDefault(), { signal });
   button.addEventListener('click', () => { void copy(); term.focus(); }, { signal });
   term.element?.addEventListener('keydown', event => {
@@ -48,5 +61,5 @@ export function bindTerminalCopy(term: Terminal, before: HTMLElement): () => voi
     event.stopPropagation();
     void copy();
   }, { capture: true, signal });
-  return () => { controller.abort(); selection.dispose(); button.remove(); };
+  return () => { controller.abort(); selection.dispose(); osc52.dispose(); button.remove(); };
 }

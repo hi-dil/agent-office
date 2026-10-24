@@ -38,7 +38,7 @@ On a phone, use the 2D view at `/lite` instead: a terminal there has a row of ke
 
 ## In a terminal
 
-To copy shell, Claude Code, Codex or other CLI output, drag across the text and click **Copy** in the terminal header, or press **⌘C** on Mac / **Ctrl+Shift+C** on Windows and Linux. If the CLI captures the mouse, hold **Option** while dragging on Mac, or **Shift** on Windows and Linux. **Ctrl+C** copies when text is selected; without a selection it still interrupts the running program. The Copy button is enabled once text is selected.
+To copy shell, Claude Code, Codex or other CLI output, drag across the text and click **Copy** in the terminal header, or press **⌘C** on Mac / **Ctrl+Shift+C** on Windows and Linux. If the CLI captures the mouse, hold **Option** while dragging on Mac, or **Shift** on Windows and Linux. **Ctrl+C** copies when text is selected; without a selection it still interrupts the running program. The Copy button is enabled once text is selected. When Claude Code (or another CLI that sends OSC 52) copies its own selection, the office puts that text on your browser’s clipboard too, so copying works when the office runs on another machine. This applies only to the viewer who just clicked or typed in that terminal, and needs an HTTPS office.
 
 Terminal URLs open through normal browser links, with Cmd/Ctrl/Shift-click modifiers preserved. Your browser decides whether to use a tab or a window; installed app windows may open links in a separate browser window.
 
